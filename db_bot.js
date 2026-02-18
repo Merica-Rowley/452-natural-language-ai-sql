@@ -121,7 +121,9 @@ const questions = [
   "As a percentage, how many guests have not checked in yet?",
   "Which people staying in Building 3 were born in July?",
   "Will anyone be staying in the dorms on their birthday?",
-  "As a percentage, how many FSY 1B participants are female?",
+  "Who will have a birthday during the FSY 1B session?",
+  "As a percentage, how many of the FSY 1B camp participants are female?",
+  "How many FSY 1A participants are female?",
 ];
 
 const strategies = {
