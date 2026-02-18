@@ -29,7 +29,7 @@ CREATE TABLE Person (
 
 CREATE TABLE Employee (
     id BIGINT PRIMARY KEY,
-    role_type ENUM('HA', 'CA') NOT NULL,
+    role_type TEXT NOT NULL CHECK (role_type IN ('HA', 'CA')),
     keyset_id BIGINT NOT NULL,
     FOREIGN KEY (id) REFERENCES Person(id)
 );
@@ -39,14 +39,14 @@ CREATE TABLE Guest (
     camp_id BIGINT NOT NULL,
     arrival_date DATE NOT NULL,
     departure_date DATE NOT NULL,
-    checked_in BOOLEAN NOT NULL,
+    checked_in INTEGER NOT NULL CHECK (checked_in IN (0, 1)),
     FOREIGN KEY (id) REFERENCES Person(id),
     FOREIGN KEY (camp_id) REFERENCES Camp(id)
 );
 
 CREATE TABLE Counselor (
     id BIGINT PRIMARY KEY,
-    role_type ENUM('Counselor', 'Assistant Coordinator', 'Coordinator', 'Medical Coordinator') NOT NULL,
+    role_type TEXT NOT NULL CHECK (role_type IN ('Counselor', 'Assistant Coordinator', 'Coordinator', 'Medical Coordinator')),
     FOREIGN KEY (id) REFERENCES Guest(id)
 );
 

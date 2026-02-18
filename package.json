@@ -1,0 +1,26 @@
+{
+  "name": "natural_language_sql_project",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "",
+  "main": "db_bot.js",
+  "scripts": {
+    "start": "node db_bot.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Merica-Rowley/452-natural-language-ai-sql.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Merica-Rowley/452-natural-language-ai-sql/issues"
+  },
+  "homepage": "https://github.com/Merica-Rowley/452-natural-language-ai-sql#readme",
+  "dependencies": {
+    "better-sqlite3": "^12.6.2",
+    "dotenv": "^17.3.1",
+    "openai": "^6.22.0"
+  }
+}
