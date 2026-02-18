@@ -1,0 +1,132 @@
+{
+  "strategy": "zero_shot",
+  "prompt_prefix": "CREATE TABLE Building (\n    id BIGINT PRIMARY KEY,\n    occupant_gender CHAR(1) NOT NULL\n);\n\nCREATE TABLE Bedspace (\n    id BIGINT PRIMARY KEY,\n    building_id BIGINT NOT NULL,\n    apartment SMALLINT NOT NULL,\n    room TINYINT NOT NULL,\n    bed CHAR(1) NOT NULL,\n    FOREIGN KEY (building_id) REFERENCES Building(id)\n);\n\nCREATE TABLE Camp (\n    id BIGINT PRIMARY KEY,\n    name VARCHAR(255) NOT NULL\n);\n\nCREATE TABLE Person (\n    id BIGINT PRIMARY KEY,\n    first_name VARCHAR(255) NOT NULL,\n    last_name VARCHAR(255) NOT NULL,\n    birthdate DATE NOT NULL,\n    gender CHAR(1) NOT NULL,\n    bedspace_id BIGINT NOT NULL,\n    FOREIGN KEY (bedspace_id) REFERENCES Bedspace(id)\n);\n\nCREATE TABLE Employee (\n    id BIGINT PRIMARY KEY,\n    role_type TEXT NOT NULL CHECK (role_type IN ('HA', 'CA')),\n    keyset_id BIGINT NOT NULL,\n    FOREIGN KEY (id) REFERENCES Person(id)\n);\n\nCREATE TABLE Guest (\n    id BIGINT PRIMARY KEY,\n    camp_id BIGINT NOT NULL,\n    arrival_date DATE NOT NULL,\n    departure_date DATE NOT NULL,\n    checked_in INTEGER NOT NULL CHECK (checked_in IN (0, 1)),\n    FOREIGN KEY (id) REFERENCES Person(id),\n    FOREIGN KEY (camp_id) REFERENCES Camp(id)\n);\n\nCREATE TABLE Counselor (\n    id BIGINT PRIMARY KEY,\n    role_type TEXT NOT NULL CHECK (role_type IN ('Counselor', 'Assistant Coordinator', 'Coordinator', 'Medical Coordinator')),\n    FOREIGN KEY (id) REFERENCES Guest(id)\n);\n\nCREATE TABLE Participant (\n    id BIGINT PRIMARY KEY,\n    counselor_id BIGINT NOT NULL,\n    FOREIGN KEY (id) REFERENCES Guest(id),\n    FOREIGN KEY (counselor_id) REFERENCES Counselor(id)\n);\n",
+  "questions": [
+    {
+      "question": "What is the average age of all people staying in the dorms?",
+      "sql_raw_response": "SELECT AVG((julianday('now') - julianday(birthdate))/365.25) AS average_age\nFROM Person\nJOIN Bedspace ON Person.bedspace_id = Bedspace.id;",
+      "sql_extracted": "SELECT AVG((julianday('now') - julianday(birthdate))/365.25) AS average_age\nFROM Person\nJOIN Bedspace ON Person.bedspace_id = Bedspace.id;",
+      "query_result": [
+        {
+          "average_age": 19.113035159485843
+        }
+      ],
+      "friendly_response": "The average age of all people staying in the dorms is about 19.1 years.",
+      "error": "None"
+    },
+    {
+      "question": "How many participants are participating in FSY 1A?",
+      "sql_raw_response": "SELECT COUNT(*)\nFROM Participant p\nJOIN Guest g ON p.id = g.id\nJOIN Camp c ON g.camp_id = c.id\nWHERE c.name = 'FSY 1A';",
+      "sql_extracted": "SELECT COUNT(*)\nFROM Participant p\nJOIN Guest g ON p.id = g.id\nJOIN Camp c ON g.camp_id = c.id\nWHERE c.name = 'FSY 1A';",
+      "query_result": [
+        {
+          "COUNT(*)": 24
+        }
+      ],
+      "friendly_response": "There are 24 participants in FSY 1A.",
+      "error": "None"
+    },
+    {
+      "question": "In which buildings are medical coordinators housed?",
+      "sql_raw_response": "```sql\nSELECT DISTINCT b.id\nFROM Building b\nJOIN Bedspace bs ON bs.building_id = b.id\nJOIN Person p ON p.bedspace_id = bs.id\nJOIN Guest g ON g.id = p.id\nJOIN Counselor c ON c.id = g.id\nWHERE c.role_type = 'Medical Coordinator';\n```",
+      "sql_extracted": "SELECT DISTINCT b.id\nFROM Building b\nJOIN Bedspace bs ON bs.building_id = b.id\nJOIN Person p ON p.bedspace_id = bs.id\nJOIN Guest g ON g.id = p.id\nJOIN Counselor c ON c.id = g.id\nWHERE c.role_type = 'Medical Coordinator';",
+      "query_result": [
+        {
+          "id": 3
+        },
+        {
+          "id": 7
+        }
+      ],
+      "friendly_response": "Medical coordinators are housed in buildings with IDs 3 and 7.",
+      "error": "None"
+    },
+    {
+      "question": "What is the most common birth year of male participants?",
+      "sql_raw_response": "```sql\nSELECT strftime('%Y', birthdate) AS birth_year, COUNT(*) AS count\nFROM Person p\nJOIN Participant pa ON p.id = pa.id\nWHERE p.gender = 'M'\nGROUP BY birth_year\nORDER BY count DESC\nLIMIT 1;\n```",
+      "sql_extracted": "SELECT strftime('%Y', birthdate) AS birth_year, COUNT(*) AS count\nFROM Person p\nJOIN Participant pa ON p.id = pa.id\nWHERE p.gender = 'M'\nGROUP BY birth_year\nORDER BY count DESC\nLIMIT 1;",
+      "query_result": [
+        {
+          "birth_year": "2011",
+          "count": 8
+        }
+      ],
+      "friendly_response": "The most common birth year of male participants is 2011.",
+      "error": "None"
+    },
+    {
+      "question": "Which counselors have the most participants assigned to them?",
+      "sql_raw_response": "```sql\nSELECT Counselor.id, COUNT(Participant.id) AS participant_count\nFROM Counselor\nJOIN Participant ON Counselor.id = Participant.counselor_id\nGROUP BY Counselor.id\nHAVING participant_count = (\n    SELECT MAX(p_count)\n    FROM (\n        SELECT COUNT(*) AS p_count\n        FROM Participant\n        GROUP BY counselor_id\n    )\n);\n```",
+      "sql_extracted": "SELECT Counselor.id, COUNT(Participant.id) AS participant_count\nFROM Counselor\nJOIN Participant ON Counselor.id = Participant.counselor_id\nGROUP BY Counselor.id\nHAVING participant_count = (\n    SELECT MAX(p_count)\n    FROM (\n        SELECT COUNT(*) AS p_count\n        FROM Participant\n        GROUP BY counselor_id\n    )\n);",
+      "query_result": [
+        {
+          "id": 5,
+          "participant_count": 6
+        }
+      ],
+      "friendly_response": "Counselor with ID 5 has the most participants assigned, totaling 6.",
+      "error": "None"
+    },
+    {
+      "question": "As a percentage, how many guests have not checked in yet?",
+      "sql_raw_response": "SELECT \n    100.0 * SUM(CASE WHEN checked_in = 0 THEN 1 ELSE 0 END) / COUNT(*) AS percentage_not_checked_in\nFROM Guest;",
+      "sql_extracted": "SELECT \n    100.0 * SUM(CASE WHEN checked_in = 0 THEN 1 ELSE 0 END) / COUNT(*) AS percentage_not_checked_in\nFROM Guest;",
+      "query_result": [
+        {
+          "percentage_not_checked_in": 23.529411764705884
+        }
+      ],
+      "friendly_response": "About 23.53% of the guests have not checked in yet.",
+      "error": "None"
+    },
+    {
+      "question": "Which people staying in Building 3 were born in July?",
+      "sql_raw_response": "SELECT Person.*\nFROM Person\nJOIN Bedspace ON Person.bedspace_id = Bedspace.id\nWHERE Bedspace.building_id = 3\n  AND strftime('%m', Person.birthdate) = '07';",
+      "sql_extracted": "SELECT Person.*\nFROM Person\nJOIN Bedspace ON Person.bedspace_id = Bedspace.id\nWHERE Bedspace.building_id = 3\n  AND strftime('%m', Person.birthdate) = '07';",
+      "query_result": [
+        {
+          "id": 2,
+          "first_name": "Marcus",
+          "last_name": "Delgado",
+          "birthdate": "2002-07-22",
+          "gender": "M",
+          "bedspace_id": 21
+        },
+        {
+          "id": 22,
+          "first_name": "Nolan",
+          "last_name": "Chambers",
+          "birthdate": "2010-07-31",
+          "gender": "M",
+          "bedspace_id": 16
+        }
+      ],
+      "friendly_response": "Marcus Delgado and Nolan Chambers are the people in Building 3 born in July.",
+      "error": "None"
+    },
+    {
+      "question": "Will anyone be staying in the dorms on their birthday?",
+      "sql_raw_response": "SELECT EXISTS (\n    SELECT 1\n    FROM Guest g\n    JOIN Person p ON g.id = p.id\n    WHERE g.checked_in = 1\n    AND strftime('%m-%d', g.arrival_date) <= strftime('%m-%d', p.birthdate)\n    AND strftime('%m-%d', p.birthdate) <= strftime('%m-%d', g.departure_date)\n);",
+      "sql_extracted": "SELECT EXISTS (\n    SELECT 1\n    FROM Guest g\n    JOIN Person p ON g.id = p.id\n    WHERE g.checked_in = 1\n    AND strftime('%m-%d', g.arrival_date) <= strftime('%m-%d', p.birthdate)\n    AND strftime('%m-%d', p.birthdate) <= strftime('%m-%d', g.departure_date)\n);",
+      "query_result": [
+        {
+          "EXISTS (\n    SELECT 1\n    FROM Guest g\n    JOIN Person p ON g.id = p.id\n    WHERE g.checked_in = 1\n    AND strftime('%m-%d', g.arrival_date) <= strftime('%m-%d', p.birthdate)\n    AND strftime('%m-%d', p.birthdate) <= strftime('%m-%d', g.departure_date)\n)": 1
+        }
+      ],
+      "friendly_response": "Yes, there is at least one person staying in the dorms on their birthday.",
+      "error": "None"
+    },
+    {
+      "question": "As a percentage, how many FSY 1B participants are female?",
+      "sql_raw_response": "```sql\nSELECT \n    ROUND(\n        100.0 * SUM(CASE WHEN p.gender = 'F' THEN 1 ELSE 0 END) / COUNT(*),\n        2\n    ) AS female_percentage\nFROM Participant part\nJOIN Guest g ON part.id = g.id\nJOIN Person p ON g.id = p.id\nJOIN Bedspace b ON p.bedspace_id = b.id\nWHERE b.apartment = 1 AND b.room = 2;\n```",
+      "sql_extracted": "SELECT \n    ROUND(\n        100.0 * SUM(CASE WHEN p.gender = 'F' THEN 1 ELSE 0 END) / COUNT(*),\n        2\n    ) AS female_percentage\nFROM Participant part\nJOIN Guest g ON part.id = g.id\nJOIN Person p ON g.id = p.id\nJOIN Bedspace b ON p.bedspace_id = b.id\nWHERE b.apartment = 1 AND b.room = 2;",
+      "query_result": [
+        {
+          "female_percentage": null
+        }
+      ],
+      "friendly_response": "The percentage of female FSY 1B participants is not available (null) based on the current data.",
+      "error": "None"
+    }
+  ]
+}
